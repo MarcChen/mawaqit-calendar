@@ -1,0 +1,54 @@
+[project]
+name = "mawaqit-calendar"
+description = "Scrape prayer times from Mawaqit and generate ICS calendar files for mosques."
+version = "0.1.0"
+authors = [
+    { name = "MarcChen", email = "128506536+MarcChen@users.noreply.github.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic",
+    "requests",
+    "icalendar>=6.3.1",
+    "beautifulsoup4",
+    "rich"
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "pytest"
+]
+test = [
+    "pytest"
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra -q --tb=short -v --strict-markers --strict-config"
+pythonpath = ["."]
+testpaths = [
+    "tests",
+]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+ignore = []
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+]
+
+pydocstyle = { convention = 'google' }
+isort = { known-first-party = ['pydantic', 'tests'] }
+mccabe = { max-complexity = 14 }
+
+[tool.ruff.format]
+quote-style = "double"
