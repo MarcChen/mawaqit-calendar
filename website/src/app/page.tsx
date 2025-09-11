@@ -34,7 +34,8 @@ const mosqueData: MosqueMetadata = {
   timezone: "Europe/Paris",
   image: "https://cdn.mawaqit.net/images/backend/mosque/643f114c-4c4c-4e4b-ab0a-7d6725756818/mosque/1eea8db7-31f5-6ba2-b224-066ed47a7584.jpg",
   interiorPicture: "https://cdn.mawaqit.net/images/backend/mosque/643f114c-4c4c-4e4b-ab0a-7d6725756818/mosque/1eea8db7-31f5-6ba2-b224-066ed47a7584.jpg",
-  exteriorPicture: "https://cdn.mawaqit.net/images/backend/mosque/643f114c-4c4c-4e4b-ab0a-7d6725756818/mosque/1eea8db7-3711-687a-81f9-066ed47a7584.jpg"
+  exteriorPicture: "https://cdn.mawaqit.net/images/backend/mosque/643f114c-4c4c-4e4b-ab0a-7d6725756818/mosque/1eea8db7-3711-687a-81f9-066ed47a7584.jpg",
+  calendarUrl: "https://calendar.google.com/calendar/ical/614e8a4cb293fcfc093f481be59e9c588a6d507a49d1b341413f16f62741c5a4%40group.calendar.google.com/public/basic.ics"
 };
 
 export default function Home() {

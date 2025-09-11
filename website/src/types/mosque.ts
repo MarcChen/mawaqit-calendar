@@ -25,4 +25,5 @@ export interface MosqueMetadata {
   image: string;
   interiorPicture: string;
   exteriorPicture: string;
+  calendarUrl: string;
 }

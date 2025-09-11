@@ -1,5 +1,8 @@
+"use client";
+
 import { MosqueMetadata } from '@/types/mosque';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
 
 interface MosqueCardProps {
   mosque: MosqueMetadata;
@@ -13,6 +16,32 @@ const FeatureIcon = ({ enabled, icon, label }: { enabled: boolean; icon: string;
 );
 
 export default function MosqueCard({ mosque }: MosqueCardProps) {
+  const [calendarEmbedUrl, setCalendarEmbedUrl] = useState<string>('');
+
+  useEffect(() => {
+    // Extract calendar ID from the calendarUrl
+    const extractCalendarId = (url: string): string | null => {
+      if (!url) return null;
+      const match = url.match(/\/([^\/]+)\/public\/basic\.ics$/);
+      return match ? match[1] : null;
+    };
+
+    // Get browser timezone
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    // Build the embed URL
+    const calendarId = extractCalendarId(mosque.calendarUrl);
+    console.log('extracted calendarId:', calendarId);
+    
+    if (calendarId) {
+      const embedUrl = `https://calendar.google.com/calendar/embed?src=${calendarId}&ctz=${encodeURIComponent(browserTimezone)}&mode=AGENDA`;
+      setCalendarEmbedUrl(embedUrl);
+    } else {
+      console.log('No calendar ID found, calendarUrl might be missing or in wrong format');
+      setCalendarEmbedUrl('');
+    }
+  }, [mosque.calendarUrl]);
+
   const features = [
     { key: 'parking', icon: '🚗', label: 'Parking' },
     { key: 'ablutions', icon: '🚿', label: 'Ablutions' },
@@ -45,6 +74,30 @@ export default function MosqueCard({ mosque }: MosqueCardProps) {
         </div>
       </div>
 
+      {/* Prayer Times Calendar */}
+      <div className="p-6 md:p-8 border-b border-gray-200">
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">🕐 Prayer Times Calendar</h3>
+        <div className="w-full flex justify-center">
+          {calendarEmbedUrl ? (
+            <iframe
+              src={calendarEmbedUrl}
+              style={{ border: 0 }}
+              width="100%"
+              height="600"
+              frameBorder="0"
+              scrolling="no"
+              className="rounded-lg shadow"
+              allowFullScreen
+              title="Mosque Google Calendar"
+            />
+          ) : (
+            <div className="w-full h-96 bg-gray-100 rounded-lg flex items-center justify-center">
+              <p className="text-gray-500">Loading calendar...</p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Content */}
       <div className="p-6 md:p-8">
         {/* Location & Contact */}
@@ -52,15 +105,14 @@ export default function MosqueCard({ mosque }: MosqueCardProps) {
           <div className="space-y-4">
             <h3 className="text-xl font-semibold text-gray-800 mb-3">📍 Location</h3>
             <div className="space-y-2">
-              <p className="text-gray-600">
-                <span className="font-medium">Coordinates:</span> {mosque.latitude.toFixed(6)}, {mosque.longitude.toFixed(6)}
-              </p>
-              <p className="text-gray-600">
-                <span className="font-medium">Country:</span> {mosque.countryCode}
-              </p>
-              <p className="text-gray-600">
-                <span className="font-medium">Timezone:</span> {mosque.timezone}
-              </p>
+              <a
+                href={`https://www.google.com/maps?q=${mosque.latitude},${mosque.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-blue-600 hover:text-blue-800 underline"
+              >
+                🗺️ View on Google Maps
+              </a>
             </div>
           </div>
 
