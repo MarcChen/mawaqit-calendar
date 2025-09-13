@@ -6,8 +6,6 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  basePath: process.env.NODE_ENV === 'production' ? '/mawaqit-calendar' : '',
-  assetPrefix: process.env.NODE_ENV === 'production' ? '/mawaqit-calendar/' : '',
 };
 
 export default nextConfig;

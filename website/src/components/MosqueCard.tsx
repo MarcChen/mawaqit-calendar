@@ -3,6 +3,7 @@
 import { MosqueMetadata } from '@/types/mosque';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import CalendarSubscription from './CalendarSubscription';
 
 interface MosqueCardProps {
   mosque: MosqueMetadata;
@@ -66,6 +67,17 @@ export default function MosqueCard({ mosque }: MosqueCardProps) {
           priority
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        
+        {/* Calendar Subscription Button - Top Right */}
+        {mosque.calendarUrl && (
+          <div className="absolute top-4 right-4">
+            <CalendarSubscription 
+              calendarUrl={mosque.calendarUrl} 
+              mosqueName={mosque.name} 
+            />
+          </div>
+        )}
+
         <div className="absolute bottom-6 left-6 right-6">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
             {mosque.name}
