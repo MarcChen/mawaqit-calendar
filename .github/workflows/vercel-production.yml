@@ -55,17 +55,3 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Create deployment comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { context } = require('@actions/github');
-            
-            // Get the commit that triggered this workflow
-            const commit = context.sha;
-            const shortSha = commit.substring(0, 7);
-            
-            console.log(`🚀 Production deployment successful!`);
-            console.log(`Commit: ${shortSha}`);
-            console.log(`URL: ${{ steps.deploy.outputs.url }}`);
