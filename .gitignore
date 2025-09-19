@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 .env
 /data/
+
+**client_secret.json
+**token.json
