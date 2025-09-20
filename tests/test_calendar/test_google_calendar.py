@@ -68,7 +68,7 @@ class TestGoogleCalendarClient:
         event.add("dtend", datetime(2025, 1, 1, 13, 0, 0))
         cal.add_component(event)
         ics_path.write_bytes(cal.to_ical())
-        self.client.add_events_from_ics(calendar_id, str(ics_path))
+        self.client.add_events_from_ics_batch(calendar_id, str(ics_path))
 
         events = self.client.list_events(calendar_id)
         assert any(
@@ -103,14 +103,95 @@ class TestGoogleCalendarClient:
         assert b"BEGIN:VCALENDAR" in response.content
         self.client.delete_calendar(calendar_id)
 
+    def test_add_multiple_events_from_ics_batch(self, tmp_path):
+        try:
+            calendar_id = self.client.create_calendar("Batch ICS Calendar")
+        except ValueError:
+            calendar_id = self.client.get_calendar_id_by_name("Batch ICS Calendar")
+
+        # Create ICS file with multiple events
+        cal = Calendar()
+        for i in range(10):
+            event = Event()
+            event.add("summary", f"Batch Event {i}")
+            event.add("dtstart", datetime(2025, 2, 1, 10 + i, 0, 0))
+            event.add("dtend", datetime(2025, 2, 1, 11 + i, 0, 0))
+            cal.add_component(event)
+        ics_path = tmp_path / "batch_test.ics"
+        ics_path.write_bytes(cal.to_ical())
+
+        self.client.add_events_from_ics_batch(calendar_id, str(ics_path))
+
+        events = self.client.list_events(calendar_id)
+        for i in range(10):
+            assert any(
+                e.get("summary") == f"Batch Event {i}"
+                and e.get("start", {})
+                .get("dateTime", "")
+                .startswith(f"2025-02-01T{10 + i:02d}:00:00")
+                and e.get("end", {})
+                .get("dateTime", "")
+                .startswith(f"2025-02-01T{11 + i:02d}:00:00")
+                for e in events
+            )
+        self.client.delete_calendar(calendar_id)
+
+    def test_add_date_only_events_from_ics_batch(self, tmp_path):
+        try:
+            calendar_id = self.client.create_calendar("Date Only ICS Calendar")
+        except ValueError:
+            calendar_id = self.client.get_calendar_id_by_name("Date Only ICS Calendar")
+
+        cal = Calendar()
+        for i in range(3):
+            event = Event()
+            event.add("summary", f"Date Event {i}")
+            event.add("dtstart", datetime(2025, 3, 1 + i).date())
+            event.add("dtend", datetime(2025, 3, 2 + i).date())
+            cal.add_component(event)
+        ics_path = tmp_path / "date_only_test.ics"
+        ics_path.write_bytes(cal.to_ical())
+
+        self.client.add_events_from_ics_batch(calendar_id, str(ics_path))
+
+        events = self.client.list_events(calendar_id)
+        for i in range(3):
+            assert any(
+                e.get("summary") == f"Date Event {i}"
+                and e.get("start", {}).get("date", "") == f"2025-03-{1 + i:02d}"
+                and e.get("end", {}).get("date", "") == f"2025-03-{2 + i:02d}"
+                for e in events
+            )
+        self.client.delete_calendar(calendar_id)
+
+    def test_add_events_from_ics_batch_with_description_and_location(self, tmp_path):
+        try:
+            calendar_id = self.client.create_calendar("DescLoc ICS Calendar")
+        except ValueError:
+            calendar_id = self.client.get_calendar_id_by_name("DescLoc ICS Calendar")
+
+        cal = Calendar()
+        event = Event()
+        event.add("summary", "Event with Desc and Loc")
+        event.add("dtstart", datetime(2025, 4, 1, 9, 0, 0))
+        event.add("dtend", datetime(2025, 4, 1, 10, 0, 0))
+        event.add("description", "This is a test description.")
+        event.add("location", "Test Location")
+        cal.add_component(event)
+        ics_path = tmp_path / "desc_loc_test.ics"
+        ics_path.write_bytes(cal.to_ical())
+
+        self.client.add_events_from_ics_batch(calendar_id, str(ics_path))
+
+        events = self.client.list_events(calendar_id)
+        assert any(
+            e.get("summary") == "Event with Desc and Loc"
+            and e.get("description") == "This is a test description."
+            and e.get("location") == "Test Location"
+            for e in events
+        )
+        self.client.delete_calendar(calendar_id)
+
 
 if __name__ == "__main__":
-    pytest.main(
-        [
-            "-vvv",
-            __file__,
-            "-s",
-            #  "-k",
-            #  "test_make_calendar_public or test_get_public_ics_url"
-        ]
-    )
+    pytest.main(["-vvv", __file__, "-s", "-k", "test_add_"])

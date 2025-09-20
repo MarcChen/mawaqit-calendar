@@ -1,18 +1,18 @@
-import re
 import json
-from typing import Optional
-from src.scrapers.base_scraper import BaseScraper
-from src.models.mosque import Mosque, MosqueMetadata
-from src.models.prayer_time import PrayerTime
+import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
+from src.models.mosque import Mosque, MosqueMetadata
+from src.models.prayer_time import PrayerTime
+from src.scrapers.base_scraper import BaseScraper
 
 
 class MawaqitScraper(BaseScraper):
     def __init__(self, delay_range: tuple = (1, 3), timeout: int = 30):
         super().__init__(delay_range, timeout)
 
-    def extract_conf_data(self, url: str) -> Optional[dict]:
+    def extract_conf_data(self, url: str) -> dict | None:
         """Extract confData from the mosque page"""
         try:
             soup = self.get_and_parse(url)
@@ -63,7 +63,7 @@ class MawaqitScraper(BaseScraper):
             exteriorPicture=conf_data.get("exteriorPicture"),
         )
 
-    def create_prayer_time(self, conf_data: dict) -> Optional[PrayerTime]:
+    def create_prayer_time(self, conf_data: dict) -> PrayerTime | None:
         """Create PrayerTime from confData"""
         try:
             # Extract prayer times data
@@ -74,7 +74,7 @@ class MawaqitScraper(BaseScraper):
             self.logger.error(f"Error creating PrayerTime: {e}")
             return None
 
-    def scrape(self, url: str) -> Optional[Mosque]:
+    def scrape(self, url: str) -> Mosque | None:
         """
         Main scraping method - implementation of abstract method from BaseScraper
 
@@ -84,7 +84,7 @@ class MawaqitScraper(BaseScraper):
         Returns:
             Mosque object or None if failed
         """
-        self.logger.info(f"Starting to scrape mosque from: {url}")
+        self.logger.debug(f"Starting to scrape mosque from: {url}")
 
         conf_data = self.extract_conf_data(url)
         if not conf_data:
@@ -111,7 +111,7 @@ class MawaqitScraper(BaseScraper):
                 metadata=metadata,
             )
 
-            self.logger.info(f"Successfully created Mosque object for: {mosque.name}")
+            self.logger.debug(f"Successfully created Mosque object for: {mosque.name}")
             return mosque
 
         except Exception as e:

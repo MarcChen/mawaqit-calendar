@@ -1,15 +1,15 @@
-from icalendar import Calendar, Event, Alarm
-from pydantic import BaseModel, Field, PrivateAttr
-from typing import Optional
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
-import uuid
 import logging
+import uuid
+from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
+from icalendar import Alarm, Calendar, Event
+
+from pydantic import BaseModel, Field, PrivateAttr
+from src.config.settings import CALENDAR_DIR
 from src.models.calendar_config import CalendarConfig, GeneratorConfig, PrayerName
 from src.models.mosque import Mosque
-from src.config.settings import CALENDAR_DIR
 
 
 class ICSGenerator(BaseModel):
@@ -21,7 +21,7 @@ class ICSGenerator(BaseModel):
 
     # Private attributes for internal state
     _logger: logging.Logger = PrivateAttr()
-    _calendar: Optional[Calendar] = PrivateAttr(default=None)
+    _calendar: Calendar | None = PrivateAttr(default=None)
 
     class Config:
         arbitrary_types_allowed = True
@@ -178,7 +178,7 @@ class ICSGenerator(BaseModel):
             self._logger.warning("No prayer time data available")
             return self._calendar
 
-        self._logger.info(
+        self._logger.debug(
             f"Generating calendar for {len(available_dates)} available dates"
         )
 
@@ -210,14 +210,14 @@ class ICSGenerator(BaseModel):
 
                     except Exception as e:
                         self._logger.error(
-                            f"Error creating event for {prayer_name} on {current_date}: {e}"
+                            f"Error creating event for {prayer_name} on {current_date}: {e}"  # noqa E501
                         )
                         continue
 
             except Exception as e:
                 self._logger.error(f"Error processing date {current_date}: {e}")
 
-        self._logger.info(
+        self._logger.debug(
             f"Generated calendar with {len(self._calendar.subcomponents)} events"
         )
         return self._calendar
@@ -236,7 +236,7 @@ class ICSGenerator(BaseModel):
         with open(filepath, "wb") as f:
             f.write(self._calendar.to_ical())
 
-        self._logger.info(f"Calendar saved to: {filepath}")
+        self._logger.debug(f"Calendar saved to: {filepath}")
 
     def get_calendar_string(self) -> str:
         """Get calendar as string"""
@@ -248,8 +248,8 @@ class ICSGenerator(BaseModel):
 
 def generate_prayer_calendar(
     mosque: Mosque,
-    calendar_name: Optional[str] = None,
-    output_file: Optional[str] = None,
+    calendar_name: str | None = None,
+    output_file: str | None = None,
 ) -> ICSGenerator:
     """Convenience function to create a prayer calendar"""
 
@@ -271,6 +271,7 @@ def generate_prayer_calendar(
 # Example usage
 def main():
     import logging
+
     from src.scrapers.mawaqit_scraper import MawaqitScraper
 
     logging.basicConfig(level=logging.INFO)
@@ -284,7 +285,7 @@ def main():
             )
 
             generator.save_calendar()
-            print(f"Calendar generated for all available prayer time data")
+            print("Calendar generated for all available prayer time data")
 
 
 if __name__ == "__main__":

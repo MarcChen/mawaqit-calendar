@@ -59,25 +59,82 @@ class GoogleCalendarClient:
                 return cal.get("id")
         return None
 
-    def add_events_from_ics(self, calendar_id: str, ics_path: str):
+    def add_events_from_ics_batch(self, calendar_id: str, ics_path: str):
+        def callback(request_id, response, exception):
+            """Callback function to handle batch request responses"""
+            if exception:
+                self.logger.error(f"Request {request_id} failed: {exception}")
+            else:
+                self.logger.debug(
+                    f"Event created successfully: {response.get('id', 'Unknown ID')}"
+                )
+
         with open(ics_path) as f:
             cal = Calendar.from_ical(f.read())
+
+        events_to_create = []
+
+        # Extract events from ICS
         for component in cal.walk():
             if component.name == "VEVENT":
-                event = {
-                    "summary": str(component.get("summary")),
-                    "start": {
-                        "dateTime": component.get("dtstart").dt.isoformat(),
-                        "timeZone": "UTC",
-                    },
-                    "end": {
-                        "dateTime": component.get("dtend").dt.isoformat(),
-                        "timeZone": "UTC",
-                    },
-                }
-                self.service.events().insert(
-                    calendarId=calendar_id, body=event
-                ).execute()
+                start_dt = component.get("dtstart").dt
+                end_dt = component.get("dtend").dt
+
+                if hasattr(start_dt, "hour"):
+                    # Datetime event
+                    event = {
+                        "summary": str(component.get("summary", "No Title")),
+                        "start": {
+                            "dateTime": start_dt.isoformat(),
+                            "timeZone": "UTC",
+                        },
+                        "end": {
+                            "dateTime": end_dt.isoformat(),
+                            "timeZone": "UTC",
+                        },
+                    }
+                else:
+                    # Date-only event
+                    event = {
+                        "summary": str(component.get("summary", "No Title")),
+                        "start": {
+                            "date": start_dt.strftime("%Y-%m-%d"),
+                        },
+                        "end": {
+                            "date": end_dt.strftime("%Y-%m-%d"),
+                        },
+                    }
+
+                if component.get("description"):
+                    event["description"] = str(component.get("description"))
+                if component.get("location"):
+                    event["location"] = str(component.get("location"))
+
+                events_to_create.append(event)
+
+        # Process events in batches (API limit)
+        batch_size = 800
+        total_events = len(events_to_create)
+
+        for i in range(0, total_events, batch_size):
+            batch_events = events_to_create[i : i + batch_size]
+            batch = self.service.new_batch_http_request(callback=callback)
+
+            for idx, event in enumerate(batch_events):
+                request_id = f"event_{i + idx}"
+                batch.add(
+                    self.service.events().insert(calendarId=calendar_id, body=event),
+                    request_id=request_id,
+                )
+
+            self.logger.debug(
+                f"Executing batch {i // batch_size + 1} with {len(batch_events)} events ..."  # noqa E501
+            )
+            try:
+                batch.execute()
+                self.logger.debug(f"Batch {i // batch_size + 1} completed")
+            except Exception as e:
+                self.logger.error(f"Batch execution failed: {e}")
 
     def delete_calendar(self, calendar_id: str):
         if calendar_id in self.config.blacklisted_ids:
@@ -95,7 +152,7 @@ class GoogleCalendarClient:
         try:
             events_result = self.service.events().list(calendarId=calendar_id).execute()
             events = events_result.get("items", [])
-            self.logger.info(f"Found {len(events)} events in calendar {calendar_id}")
+            self.logger.debug(f"Found {len(events)} events in calendar {calendar_id}")
             return events
         except Exception as e:
             self.logger.error(f"Failed to list events for calendar {calendar_id}: {e}")
@@ -116,17 +173,3 @@ class GoogleCalendarClient:
         return (
             f"https://calendar.google.com/calendar/ical/{calendar_id}/public/basic.ics"
         )
-
-
-if __name__ == "__main__":
-    config = GoogleCalendarConfig(
-        credentials_path="client_secret.json",
-        token_path="token.json",
-        scopes=["https://www.googleapis.com/auth/calendar"],
-    )
-    client = GoogleCalendarClient(config)
-    # Example usage
-    calendars = client.list_calendars()
-    print("Calendars:")
-    for cal in calendars:
-        print(f"- {cal.get('summary')} (ID: {cal.get('id')})")
