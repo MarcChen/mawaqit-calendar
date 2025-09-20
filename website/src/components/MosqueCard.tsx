@@ -10,7 +10,7 @@ interface MosqueCardProps {
 }
 
 const FeatureIcon = ({ enabled, icon, label }: { enabled: boolean; icon: string; label: string }) => (
-  <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
+  <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-600'}`}>
     <span className="text-lg">{icon}</span>
     <span className="text-sm font-medium">{label}</span>
   </div>
@@ -29,11 +29,11 @@ export default function MosqueCard({ mosque }: MosqueCardProps) {
 
     // Get browser timezone
     const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    
+
     // Build the embed URL
     const calendarId = extractCalendarId(mosque.calendarUrl);
     console.log('extracted calendarId:', calendarId);
-    
+
     if (calendarId) {
       const embedUrl = `https://calendar.google.com/calendar/embed?src=${calendarId}&ctz=${encodeURIComponent(browserTimezone)}&mode=AGENDA`;
       setCalendarEmbedUrl(embedUrl);
@@ -67,13 +67,13 @@ export default function MosqueCard({ mosque }: MosqueCardProps) {
           priority
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-        
+
         {/* Calendar Subscription Button - Top Right */}
         {mosque.calendarUrl && (
           <div className="absolute top-4 right-4">
-            <CalendarSubscription 
-              calendarUrl={mosque.calendarUrl} 
-              mosqueName={mosque.name} 
+            <CalendarSubscription
+              calendarUrl={mosque.calendarUrl}
+              mosqueName={mosque.name}
             />
           </div>
         )}
