@@ -1,10 +1,13 @@
 import json
+import logging
 import os
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from src.config.settings import GLOBAL_METADATA_PATH, PROCESSED_DATA_DIR
 from src.models.prayer_time import PrayerTime
+
+logger = logging.getLogger(__name__)
 
 
 class MosqueMetadata(BaseModel):
@@ -113,7 +116,7 @@ class Mosque(BaseModel):
             with open(GLOBAL_METADATA_PATH, "w", encoding="utf-8") as f:
                 json.dump(global_metadata, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Error updating global metadata: {e}")
+            logger.error(f"Error updating global metadata: {e}")
 
         # Save prayer times
         prayer_times_path = os.path.join(mosque_dir, f"prayer_times_{self.year}.json")
