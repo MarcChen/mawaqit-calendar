@@ -1,10 +1,10 @@
-from typing import Optional
-from pydantic import BaseModel, Field, ConfigDict, model_validator
-from src.models.prayer_time import PrayerTime
-import os
 import json
-from src.config.settings import PROCESSED_DATA_DIR
+import os
 from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from src.config.settings import GLOBAL_METADATA_PATH, PROCESSED_DATA_DIR
+from src.models.prayer_time import PrayerTime
 
 
 class MosqueMetadata(BaseModel):
@@ -15,22 +15,23 @@ class MosqueMetadata(BaseModel):
         frozen=False,
     )
 
-    parking: Optional[bool] = None
-    ablutions: Optional[bool] = None
-    ramadan_meal: Optional[bool] = Field(None, alias="ramadanMeal")
-    other_info: Optional[str] = Field(None, alias="otherInfo")
-    women_space: Optional[bool] = Field(None, alias="womenSpace")
-    janaza_prayer: Optional[bool] = Field(None, alias="janazaPrayer")
-    aid_prayer: Optional[bool] = Field(None, alias="aidPrayer")
-    adult_courses: Optional[bool] = Field(None, alias="adultCourses")
-    children_courses: Optional[bool] = Field(None, alias="childrenCourses")
-    handicap_accessibility: Optional[bool] = Field(None, alias="handicapAccessibility")
-    payment_website: Optional[str] = Field(None, alias="paymentWebsite")
-    country_code: Optional[str] = Field(None, alias="countryCode")
-    timezone: Optional[str] = None
-    image: Optional[str] = None
-    interior_picture: Optional[str] = Field(None, alias="interiorPicture")
-    exterior_picture: Optional[str] = Field(None, alias="exteriorPicture")
+    parking: bool | None = None
+    ablutions: bool | None = None
+    ramadan_meal: bool | None = Field(None, alias="ramadanMeal")
+    other_info: str | None = Field(None, alias="otherInfo")
+    women_space: bool | None = Field(None, alias="womenSpace")
+    janaza_prayer: bool | None = Field(None, alias="janazaPrayer")
+    aid_prayer: bool | None = Field(None, alias="aidPrayer")
+    adult_courses: bool | None = Field(None, alias="adultCourses")
+    children_courses: bool | None = Field(None, alias="childrenCourses")
+    handicap_accessibility: bool | None = Field(None, alias="handicapAccessibility")
+    payment_website: str | None = Field(None, alias="paymentWebsite")
+    country_code: str | None = Field(None, alias="countryCode")
+    timezone: str | None = None
+    image: str | None = None
+    interior_picture: str | None = Field(None, alias="interiorPicture")
+    exterior_picture: str | None = Field(None, alias="exteriorPicture")
+    calendar_url: str | None = Field(None, alias="calendarUrl", exclude=True)
 
 
 class Mosque(BaseModel):
@@ -45,14 +46,14 @@ class Mosque(BaseModel):
     longitude: float = Field(..., ge=-180, le=180, description="Longitude coordinate")
     name: str = Field(..., min_length=1, description="Mosque name")
     url: str = Field(..., description="Mosque website URL")
-    label: Optional[str] = None
-    logo: Optional[str] = None
-    site: Optional[str] = None
-    association: Optional[str] = None
-    steam_url: Optional[str] = Field(None, alias="steamUrl")
-    scraped_at: Optional[datetime] = Field(None, alias="scrapedAt")  # ISO 8601 format
-    prayer_time: Optional[PrayerTime] = Field(None, alias="prayerTime")
-    metadata: Optional[MosqueMetadata] = None
+    label: str | None = None
+    logo: str | None = None
+    site: str | None = None
+    association: str | None = None
+    steam_url: str | None = Field(None, alias="steamUrl")
+    scraped_at: datetime | None = Field(None, alias="scrapedAt")  # ISO 8601 format
+    prayer_time: PrayerTime | None = Field(None, alias="prayerTime")
+    metadata: MosqueMetadata | None = None
 
     @property
     def id(self) -> str:
@@ -100,6 +101,19 @@ class Mosque(BaseModel):
         merged_data = {**mosque_data, **metadata_to_save}
         with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(merged_data, f, ensure_ascii=False, indent=2)
+        try:
+            if os.path.exists(GLOBAL_METADATA_PATH):
+                with open(GLOBAL_METADATA_PATH, encoding="utf-8") as f:
+                    global_metadata = json.load(f)
+            else:
+                global_metadata = {}
+
+            global_metadata[self.id] = merged_data
+
+            with open(GLOBAL_METADATA_PATH, "w", encoding="utf-8") as f:
+                json.dump(global_metadata, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"Error updating global metadata: {e}")
 
         # Save prayer times
         prayer_times_path = os.path.join(mosque_dir, f"prayer_times_{self.year}.json")
