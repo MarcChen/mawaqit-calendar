@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+import requests
 from icalendar import Calendar, Event
 
 from src.calendar.google_calendar import GoogleCalendarClient
@@ -78,6 +79,38 @@ class TestGoogleCalendarClient:
         )
         self.client.delete_calendar(calendar_id)
 
+    def test_make_calendar_public(self):
+        calendar_id = self.client.create_calendar("Public Calendar")
+        self.client.make_calendar_public(calendar_id)
+        acl = self.client.service.acl().list(calendarId=calendar_id).execute()
+        assert any(
+            rule.get("scope", {}).get("type") == "default"
+            and rule.get("role") == "reader"
+            for rule in acl.get("items", [])
+        )
+        self.client.delete_calendar(calendar_id)
+
+    def test_get_public_ics_url(self):
+        calendar_id = self.client.create_calendar("Public ICS Calendar")
+        self.client.make_calendar_public(calendar_id)
+        url = self.client.get_public_ics_url(calendar_id)
+        assert (
+            url
+            == f"https://calendar.google.com/calendar/ical/{calendar_id}/public/basic.ics"
+        )
+        response = requests.get(url)
+        assert response.status_code == 200
+        assert b"BEGIN:VCALENDAR" in response.content
+        self.client.delete_calendar(calendar_id)
+
 
 if __name__ == "__main__":
-    pytest.main(["-vvv", __file__, "-s"])
+    pytest.main(
+        [
+            "-vvv",
+            __file__,
+            "-s",
+            #  "-k",
+            #  "test_make_calendar_public or test_get_public_ics_url"
+        ]
+    )

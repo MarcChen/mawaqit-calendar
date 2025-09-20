@@ -101,6 +101,22 @@ class GoogleCalendarClient:
             self.logger.error(f"Failed to list events for calendar {calendar_id}: {e}")
             raise
 
+    def make_calendar_public(self, calendar_id: str):
+        """Make the calendar public by adding a 'reader' ACL for 'default' scope."""
+        rule = {"scope": {"type": "default"}, "role": "reader"}
+        try:
+            self.service.acl().insert(calendarId=calendar_id, body=rule).execute()
+            self.logger.info(f"Calendar {calendar_id} is now public.")
+        except Exception as e:
+            self.logger.error(f"Failed to make calendar public: {e}")
+            raise
+
+    def get_public_ics_url(self, calendar_id: str) -> str:
+        """Return the public ICS URL for the calendar."""
+        return (
+            f"https://calendar.google.com/calendar/ical/{calendar_id}/public/basic.ics"
+        )
+
 
 if __name__ == "__main__":
     config = GoogleCalendarConfig(
