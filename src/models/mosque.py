@@ -11,7 +11,7 @@ class MosqueMetadata(BaseModel):
     model_config = ConfigDict(
         str_strip_whitespace=True,
         validate_assignment=True,
-        extra="forbid",
+        extra="allow",  # Allow extra fields (calendarUrl) for flexibility
         frozen=False,
     )
 
@@ -31,7 +31,7 @@ class MosqueMetadata(BaseModel):
     image: str | None = None
     interior_picture: str | None = Field(None, alias="interiorPicture")
     exterior_picture: str | None = Field(None, alias="exteriorPicture")
-    calendar_url: str | None = Field(None, alias="calendarUrl", exclude=True)
+    calendar_url: str | None = Field(None, alias="calendarUrl")
 
 
 class Mosque(BaseModel):

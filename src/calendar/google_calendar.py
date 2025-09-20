@@ -1,10 +1,13 @@
 import logging
 import os
+import random
+import time
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from icalendar import Calendar
 
 from src.models.google_calendar_config import GoogleCalendarConfig
@@ -113,7 +116,7 @@ class GoogleCalendarClient:
                 events_to_create.append(event)
 
         # Process events in batches (API limit)
-        batch_size = 800
+        batch_size = 500
         total_events = len(events_to_create)
 
         for i in range(0, total_events, batch_size):
@@ -130,11 +133,32 @@ class GoogleCalendarClient:
             self.logger.debug(
                 f"Executing batch {i // batch_size + 1} with {len(batch_events)} events ..."  # noqa E501
             )
-            try:
-                batch.execute()
-                self.logger.debug(f"Batch {i // batch_size + 1} completed")
-            except Exception as e:
-                self.logger.error(f"Batch execution failed: {e}")
+
+            max_retries = 3
+            backoff = 30  # seconds
+            for attempt in range(max_retries):
+                try:
+                    batch.execute()
+                    self.logger.debug(f"Batch {i // batch_size + 1} completed")
+                    break
+                except HttpError as e:
+                    status = e.resp.status
+                    if status in [403, 429]:
+                        self.logger.warning(
+                            f"Batch execution hit usage limits (HTTP {status}), retrying in {backoff}s (attempt {attempt + 1}/{max_retries})"  # noqa E501
+                        )
+                        time.sleep(backoff + random.uniform(0, 0.5 * backoff))
+                        backoff *= 2
+                    else:
+                        self.logger.error(f"Batch execution failed: {e}")
+                        break
+                except Exception as e:
+                    self.logger.error(f"Batch execution failed: {e}")
+                    break
+            else:
+                self.logger.error(
+                    f"Batch execution failed after {max_retries} retries due to usage limits."  # noqa E501
+                )
 
     def delete_calendar(self, calendar_id: str):
         if calendar_id in self.config.blacklisted_ids:

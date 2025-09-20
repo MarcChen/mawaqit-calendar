@@ -1,9 +1,9 @@
-from typing import Dict, List, Optional, Union
-from datetime import datetime, date, time
-from pydantic import BaseModel, Field, ConfigDict
-from enum import Enum
-from calendar import monthrange
 import logging
+from calendar import monthrange
+from datetime import date, datetime
+from enum import Enum
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PrayerName(str, Enum):
@@ -33,7 +33,7 @@ class DailyPrayerTimes(BaseModel):
 
     @classmethod
     def from_time_list(
-        cls, times: List[str], year: int, month: int, day: int
+        cls, times: list[str], year: int, month: int, day: int
     ) -> "DailyPrayerTimes":
         """Create DailyPrayerTimes from a list of time strings and date info"""
         if len(times) != 6:
@@ -56,14 +56,14 @@ class DailyPrayerTimes(BaseModel):
         time_obj = datetime.strptime(time_str, "%H:%M").time()
         return datetime.combine(date_obj, time_obj)
 
-    def get_all_datetimes(self, year: int, month: int) -> Dict[str, datetime]:
+    def get_all_datetimes(self, year: int, month: int) -> dict[str, datetime]:
         """Get all prayer times as datetime objects"""
         return {
             prayer.value: self.get_datetime(prayer, year, month)
             for prayer in PrayerName
         }
 
-    def to_dict(self) -> Dict[str, str]:
+    def to_dict(self) -> dict[str, str]:
         """Convert prayer times to dictionary format"""
         return {
             "fajr": self.fajr,
@@ -85,13 +85,13 @@ class MonthlyPrayerTimes(BaseModel):
 
     year: int = Field(..., description="Year")
     month: int = Field(..., ge=1, le=12, description="Month (1-12)")
-    days: List[DailyPrayerTimes] = Field(
+    days: list[DailyPrayerTimes] = Field(
         ..., description="Prayer times for each day of the month"
     )
 
     @classmethod
     def from_month_dict(
-        cls, month_data: Dict[str, List[str]], year: int, month: int
+        cls, month_data: dict[str, list[str]], year: int, month: int
     ) -> "MonthlyPrayerTimes":
         """Create MonthlyPrayerTimes from raw month data like {'1': [...]}"""
         days = []
@@ -106,7 +106,7 @@ class MonthlyPrayerTimes(BaseModel):
 
         return cls(year=year, month=month, days=days)
 
-    def get_day_prayers(self, day: int) -> Optional[DailyPrayerTimes]:
+    def get_day_prayers(self, day: int) -> DailyPrayerTimes | None:
         """Get prayer times for a specific day of the month"""
         for daily_prayer in self.days:
             if daily_prayer.day == day:
@@ -123,13 +123,13 @@ class PrayerTime(BaseModel):
     )
 
     year: int = Field(..., description="Year of the prayer times")
-    months: List[MonthlyPrayerTimes] = Field(
+    months: list[MonthlyPrayerTimes] = Field(
         ..., description="Monthly prayer times for the year"
     )
 
     @classmethod
     def from_calendar_data(
-        cls, calendar_data: List[Dict[str, List[str]]]
+        cls, calendar_data: list[dict[str, list[str]]]
     ) -> "PrayerTime":
         current_year = datetime.now().year
         months = []
@@ -144,8 +144,8 @@ class PrayerTime(BaseModel):
                 if day <= days_in_month:
                     filtered_month_data[day_str] = times
                 else:
-                    logging.warning(
-                        f"Skipping invalid day {day} for month {month_idx} and year {current_year}"
+                    logging.debug(
+                        f"Skipping invalid day {day} for month {month_idx} and year {current_year}"  # noqa E501
                     )
 
             monthly_prayers = MonthlyPrayerTimes.from_month_dict(
@@ -156,7 +156,7 @@ class PrayerTime(BaseModel):
         return cls(year=current_year, months=months)
 
     @classmethod
-    def from_monthly_data(cls, months: List[MonthlyPrayerTimes]) -> "PrayerTime":
+    def from_monthly_data(cls, months: list[MonthlyPrayerTimes]) -> "PrayerTime":
         if not months:
             raise ValueError("Must provide at least one month")
 
@@ -168,28 +168,28 @@ class PrayerTime(BaseModel):
 
         return cls(year=year, months=months)
 
-    def get_month(self, month: int) -> Optional[MonthlyPrayerTimes]:
+    def get_month(self, month: int) -> MonthlyPrayerTimes | None:
         """Get prayer times for a specific month"""
         for monthly_prayer in self.months:
             if monthly_prayer.month == month:
                 return monthly_prayer
         return None
 
-    def get_prayer_time(self, month: int, day: int) -> Optional[DailyPrayerTimes]:
+    def get_prayer_time(self, month: int, day: int) -> DailyPrayerTimes | None:
         """Get prayer times for a specific date"""
         monthly_prayer = self.get_month(month)
         if monthly_prayer:
             return monthly_prayer.get_day_prayers(day)
         return None
 
-    def get_all_daily_prayers(self) -> List[DailyPrayerTimes]:
+    def get_all_daily_prayers(self) -> list[DailyPrayerTimes]:
         """Get flattened list of all daily prayer times for the year"""
         all_days = []
         for month in self.months:
             all_days.extend(month.days)
         return all_days
 
-    def to_date_dict(self) -> Dict[str, Dict[str, str]]:
+    def to_date_dict(self) -> dict[str, dict[str, str]]:
         """Export prayer times as a dictionary with date keys in YYYY-MM-DD format"""
         result = {}
 
@@ -223,7 +223,7 @@ if __name__ == "__main__":
     # Get specific day
     jan_1 = prayer_time.get_prayer_time(1, 1)
     if jan_1:
-        print(f"January 1st prayer times:")
+        print("January 1st prayer times:")
         print(f"  Day: {jan_1.day}")
         print(f"  Fajr: {jan_1.fajr}")
         print(f"  Shuruq: {jan_1.shuruq}")
