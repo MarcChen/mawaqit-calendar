@@ -66,7 +66,7 @@ class GoogleCalendarClient:
         def callback(request_id, response, exception):
             """Callback function to handle batch request responses"""
             if exception:
-                self.logger.error(f"Request {request_id} failed: {exception}")
+                self.logger.debug(f"Request {request_id} failed: {exception}")
             else:
                 self.logger.debug(
                     f"Event created successfully: {response.get('id', 'Unknown ID')}"
