@@ -2,8 +2,8 @@
 
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { useState } from 'react';
-import CalendarSubscription from '../components/CalendarSubscription';
+import CalendarSubscription from './CalendarSubscription';
+import type { MosqueMetadata } from '@/types/mosque';
 
 const parisPosition: [number, number] = [48.8566, 2.3522];
 
@@ -14,7 +14,11 @@ const markerIcon = new L.Icon({
   popupAnchor: [1, -34],
 });
 
-export default function MosqueMap({ mosqueData }) {
+interface MosqueMapProps {
+  mosqueData: MosqueMetadata[];
+}
+
+export default function MosqueMap({ mosqueData }: MosqueMapProps) {
   return (
     <div style={{ width: '100%', height: '400px', marginTop: '1rem' }}>
       <MapContainer center={parisPosition} zoom={11} style={{ height: '100%', width: '100%' }}>
@@ -25,7 +29,7 @@ export default function MosqueMap({ mosqueData }) {
         {mosqueData.map((mosque, idx) =>
           mosque.latitude && mosque.longitude ? (
             <Marker
-              key={mosque.id ?? idx}
+              key={idx}
               position={[mosque.latitude, mosque.longitude]}
               icon={markerIcon}
             >

@@ -5,7 +5,7 @@ import MosqueCard from '@/components/MosqueCard';
 import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 
-const MosqueMap = dynamic(() => import('./MosqueMap'), { ssr: false });
+const MosqueMap = dynamic(() => import('../components/MosqueMap'), { ssr: false });
 
 export default function Home() {
   const [mosqueData, setMosqueData] = useState<Record<string, MosqueMetadata>>({});
