@@ -2,9 +2,9 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "Build and Run Website",
+			"label": "Build Website",
 			"type": "shell",
-			"command": "cd /home/kemar/projet_perso/mawaqit-calendar/website && npm run build && npm run start",
+			"command": "cd /home/kemar/projet_perso/mawaqit-calendar/website && npm run build",
 			"isBackground": true,
 			"problemMatcher": [
 				"$tsc",
