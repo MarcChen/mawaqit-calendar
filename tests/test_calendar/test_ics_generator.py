@@ -1,21 +1,18 @@
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
 from zoneinfo import ZoneInfo
-import tempfile
-from pathlib import Path
-import uuid
 
+import pytest
 from icalendar import Calendar, Event
 
 from src.calendar.ics_generator import ICSGenerator
 from src.models.calendar_config import (
-    CalendarConfig,
-    GeneratorConfig,
-    EventDuration,
     AlarmConfig,
+    CalendarConfig,
+    EventDuration,
+    GeneratorConfig,
 )
-from src.models.prayer_time import PrayerName, DailyPrayerTimes, MonthlyPrayerTimes
+from src.models.prayer_time import PrayerName
 from tests.utils.base_test_case import BaseTestCase
 
 
@@ -298,7 +295,7 @@ class TestICSGenerator(BaseTestCase):
         generator = self.create_sample_ics_generator()
 
         # Test with invalid datetime
-        with pytest.raises(Exception):
+        with pytest.raises(TypeError):
             generator._create_prayer_event("fajr", "invalid_datetime")
 
     def test_mosque_integration(self):
@@ -336,3 +333,7 @@ class TestICSGenerator(BaseTestCase):
         # Each event should have unique UID
         uids = [event["uid"] for event in events]
         assert len(set(uids)) == 3  # All UIDs should be unique
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])

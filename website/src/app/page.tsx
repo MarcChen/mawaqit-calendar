@@ -1,8 +1,17 @@
 'use client';
 
 import { MosqueMetadata } from '@/types/mosque';
-import MosqueCard from '@/components/MosqueCard';
 import { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+
+const MosqueMap = dynamic(() => import('../components/MosqueMap'), {
+  ssr: false,
+  loading: () => <div style={{ height: '400px', background: '#f0f0f0' }} />
+});
+const MosqueCard = dynamic(() => import('../components/MosqueCard'), {
+  ssr: false,
+  loading: () => <div style={{ height: '800px', background: '#f0f0f0', borderRadius: '1rem', marginBottom: '2rem' }} />
+});
 
 export default function Home() {
   const [mosqueData, setMosqueData] = useState<Record<string, MosqueMetadata>>({});
@@ -14,19 +23,19 @@ export default function Home() {
     const loadMosqueData = async () => {
       try {
         const url = '/data/mosque_metadata.json';
-        
+
         console.log('Attempting to fetch from:', url);
         console.log('NODE_ENV:', process.env.NODE_ENV);
-        
+
         const response = await fetch(url);
-        
+
         console.log('Response status:', response.status);
         console.log('Response ok:', response.ok);
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch mosque data: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         console.log('Data loaded successfully:', Object.keys(data).length, 'mosques');
         setMosqueData(data);
@@ -43,14 +52,13 @@ export default function Home() {
   const filteredMosques = useMemo(() => {
     return Object.entries(mosqueData).filter(([key, mosque]) => {
       // Text search
-      const matchesSearch = searchTerm === '' || 
-        mosque.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        mosque.association.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        key.toLowerCase().includes(searchTerm.toLowerCase());
-
+      const matchesSearch =
+        searchTerm === '' ||
+        ((mosque.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+         (mosque.association ?? '').toLowerCase().includes(searchTerm.toLowerCase()));
       return matchesSearch;
     });
-  }, [mosqueData, searchTerm]);
+  }, [searchTerm, mosqueData]);
 
   if (loading) {
     return (
@@ -102,24 +110,23 @@ export default function Home() {
             <input
               type="text"
               id="search"
-              placeholder="Search by name, association, or location..."
+              placeholder="Search by name"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-gray-800"
             />
           </div>
 
-          {/* Results count */}
-          <div className="text-sm text-gray-600">
-            {filteredMosques.length} mosque{filteredMosques.length !== 1 ? 's' : ''} found
-          </div>
+        {/* Map below the filter bar */}
+        <MosqueMap mosqueData={filteredMosques.map(([_, mosque]) => mosque)} />
+
         </div>
-        
+
         {/* Mosque Cards */}
         <div className="max-w-4xl mx-auto space-y-8">
           {filteredMosques.length > 0 ? (
-            filteredMosques.map(([mosqueKey, mosque]) => (
-              <MosqueCard key={mosqueKey} mosque={mosque} />
+            filteredMosques.map(([mosqueKey, mosque], index) => (
+              <MosqueCard key={mosqueKey} mosque={mosque} isFirst={index === 0} />
             ))
           ) : (
             <div className="text-center py-12">
@@ -133,7 +140,7 @@ export default function Home() {
             </div>
           )}
         </div>
-        
+
         <footer className="text-center mt-16 text-gray-500">
           <p className="mb-4">Data sourced from Mawaqit • {Object.keys(mosqueData).length} mosques available</p>
           <a
