@@ -1,11 +1,17 @@
 'use client';
 
 import { MosqueMetadata } from '@/types/mosque';
-import MosqueCard from '@/components/MosqueCard';
 import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 
-const MosqueMap = dynamic(() => import('../components/MosqueMap'), { ssr: false });
+const MosqueMap = dynamic(() => import('../components/MosqueMap'), {
+  ssr: false,
+  loading: () => <div style={{ height: '400px', background: '#f0f0f0' }} />
+});
+const MosqueCard = dynamic(() => import('../components/MosqueCard'), {
+  ssr: false,
+  loading: () => <div style={{ height: '800px', background: '#f0f0f0', borderRadius: '1rem', marginBottom: '2rem' }} />
+});
 
 export default function Home() {
   const [mosqueData, setMosqueData] = useState<Record<string, MosqueMetadata>>({});
@@ -119,8 +125,8 @@ export default function Home() {
         {/* Mosque Cards */}
         <div className="max-w-4xl mx-auto space-y-8">
           {filteredMosques.length > 0 ? (
-            filteredMosques.map(([mosqueKey, mosque]) => (
-              <MosqueCard key={mosqueKey} mosque={mosque} />
+            filteredMosques.map(([mosqueKey, mosque], index) => (
+              <MosqueCard key={mosqueKey} mosque={mosque} isFirst={index === 0} />
             ))
           ) : (
             <div className="text-center py-12">

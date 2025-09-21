@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 
 interface CalendarSubscriptionProps {
   calendarUrl: string;
@@ -8,55 +9,68 @@ interface CalendarSubscriptionProps {
   dropdownAlign?: 'left' | 'center';
 }
 
-export default function CalendarSubscription({ calendarUrl, mosqueName, dropdownAlign = 'left' }: CalendarSubscriptionProps) {
+export default function CalendarSubscription({
+  calendarUrl,
+  mosqueName,
+  dropdownAlign = 'left',
+}: CalendarSubscriptionProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleCalendarSubscription = (provider: 'google' | 'outlook' | 'ios') => {
-    if (!calendarUrl) return;
+  // Memoize handler for performance
+  const handleCalendarSubscription = useCallback(
+    (provider: 'google' | 'outlook' | 'ios') => {
+      if (!calendarUrl) return;
 
-    const encodedCalendarUrl = encodeURIComponent(calendarUrl);
-    const encodedMosqueName = encodeURIComponent(mosqueName);
+      const encodedCalendarUrl = encodeURIComponent(calendarUrl);
+      const encodedMosqueName = encodeURIComponent(mosqueName);
 
-    switch (provider) {
-      case 'google':
-        window.open(`https://calendar.google.com/calendar/render?cid=${encodedCalendarUrl}`, '_blank');
-        break;
-      case 'outlook':
-        window.open(`https://outlook.live.com/calendar/0/addcalendar?url=${encodedCalendarUrl}&name=${encodedMosqueName}`, '_blank');
-        break;
-      case 'ios':
-        // Create a temporary link element to trigger the download/subscription
-        const webcalUrl = calendarUrl.replace('https://', 'webcal://').replace('http://', 'webcal://');
-        const link = document.createElement('a');
-        link.href = webcalUrl;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        break;
-    }
+      switch (provider) {
+        case 'google':
+          window.open(
+            `https://calendar.google.com/calendar/render?cid=${encodedCalendarUrl}`,
+            '_blank'
+          );
+          break;
+        case 'outlook':
+          window.open(
+            `https://outlook.live.com/calendar/0/addcalendar?url=${encodedCalendarUrl}&name=${encodedMosqueName}`,
+            '_blank'
+          );
+          break;
+        case 'ios':
+          const webcalUrl = calendarUrl
+            .replace('https://', 'webcal://')
+            .replace('http://', 'webcal://');
+          const link = document.createElement('a');
+          link.href = webcalUrl;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          break;
+      }
+      setIsDropdownOpen(false);
+    },
+    [calendarUrl, mosqueName]
+  );
 
-    // Close dropdown after selection
-    setIsDropdownOpen(false);
-  };
-
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen);
-  };
+  const toggleDropdown = useCallback(() => {
+    setIsDropdownOpen((open) => !open);
+  }, []);
 
   // Handle click outside to close dropdown
   useEffect(() => {
+    if (!isDropdownOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsDropdownOpen(false);
       }
     };
-
-    if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
@@ -67,6 +81,8 @@ export default function CalendarSubscription({ calendarUrl, mosqueName, dropdown
       <button
         onClick={toggleDropdown}
         className="bg-white/90 hover:bg-white text-gray-800 px-4 py-2 rounded-lg shadow-lg backdrop-blur-sm transition-all duration-200 flex items-center space-x-2"
+        aria-haspopup="true"
+        aria-expanded={isDropdownOpen}
       >
         <span className="text-sm font-medium">📅 Subscribe</span>
         <svg
@@ -79,7 +95,7 @@ export default function CalendarSubscription({ calendarUrl, mosqueName, dropdown
         </svg>
       </button>
 
-      {/* Dropdown Menu */}
+      {/* Dropdown always rendered, just hidden */}
       <div
         className={`absolute top-full mt-2 w-48 bg-white rounded-lg shadow-xl border transition-all duration-200 z-10 ${
           isDropdownOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
@@ -89,20 +105,33 @@ export default function CalendarSubscription({ calendarUrl, mosqueName, dropdown
             ? { left: '50%', transform: 'translateX(-50%)' }
             : { right: 0 }
         }
+        aria-hidden={!isDropdownOpen}
       >
         <div className="py-2">
           <button
             onClick={() => handleCalendarSubscription('google')}
             className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-3"
           >
-            <img src="/Google_Calendar_icon.svg" alt="Google Calendar" className="w-5 h-5" />
+            <Image
+              src="/Google_Calendar_icon.svg"
+              alt="Google Calendar"
+              width={20}
+              height={20}
+              loading="lazy"
+            />
             <span>Google Calendar</span>
           </button>
           <button
             onClick={() => handleCalendarSubscription('outlook')}
             className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-3"
           >
-            <img src="/outlook-calendar.svg" alt="Outlook Calendar" className="w-5 h-5" />
+            <Image
+              src="/outlook-calendar.svg"
+              alt="Outlook Calendar"
+              width={20}
+              height={20}
+              loading="lazy"
+            />
             <span>Outlook Calendar</span>
           </button>
           <button
