@@ -3,6 +3,9 @@
 import { MosqueMetadata } from '@/types/mosque';
 import MosqueCard from '@/components/MosqueCard';
 import { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+
+const MosqueMap = dynamic(() => import('./MosqueMap'), { ssr: false });
 
 export default function Home() {
   const [mosqueData, setMosqueData] = useState<Record<string, MosqueMetadata>>({});
@@ -14,19 +17,19 @@ export default function Home() {
     const loadMosqueData = async () => {
       try {
         const url = '/data/mosque_metadata.json';
-        
+
         console.log('Attempting to fetch from:', url);
         console.log('NODE_ENV:', process.env.NODE_ENV);
-        
+
         const response = await fetch(url);
-        
+
         console.log('Response status:', response.status);
         console.log('Response ok:', response.ok);
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch mosque data: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         console.log('Data loaded successfully:', Object.keys(data).length, 'mosques');
         setMosqueData(data);
@@ -43,7 +46,7 @@ export default function Home() {
   const filteredMosques = useMemo(() => {
     return Object.entries(mosqueData).filter(([key, mosque]) => {
       // Text search
-      const matchesSearch = searchTerm === '' || 
+      const matchesSearch = searchTerm === '' ||
         mosque.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         mosque.association.toLowerCase().includes(searchTerm.toLowerCase()) ||
         key.toLowerCase().includes(searchTerm.toLowerCase());
@@ -109,12 +112,15 @@ export default function Home() {
             />
           </div>
 
+        {/* Map below the filter bar */}
+        <MosqueMap mosqueData={filteredMosques} />
+
           {/* Results count */}
           <div className="text-sm text-gray-600">
             {filteredMosques.length} mosque{filteredMosques.length !== 1 ? 's' : ''} found
           </div>
         </div>
-        
+
         {/* Mosque Cards */}
         <div className="max-w-4xl mx-auto space-y-8">
           {filteredMosques.length > 0 ? (
@@ -133,7 +139,7 @@ export default function Home() {
             </div>
           )}
         </div>
-        
+
         <footer className="text-center mt-16 text-gray-500">
           <p className="mb-4">Data sourced from Mawaqit • {Object.keys(mosqueData).length} mosques available</p>
           <a

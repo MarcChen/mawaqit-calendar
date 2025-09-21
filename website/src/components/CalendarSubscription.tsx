@@ -5,9 +5,10 @@ import { useState, useRef, useEffect } from 'react';
 interface CalendarSubscriptionProps {
   calendarUrl: string;
   mosqueName: string;
+  dropdownAlign?: 'left' | 'center';
 }
 
-export default function CalendarSubscription({ calendarUrl, mosqueName }: CalendarSubscriptionProps) {
+export default function CalendarSubscription({ calendarUrl, mosqueName, dropdownAlign = 'left' }: CalendarSubscriptionProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -35,7 +36,7 @@ export default function CalendarSubscription({ calendarUrl, mosqueName }: Calend
         document.body.removeChild(link);
         break;
     }
-    
+
     // Close dropdown after selection
     setIsDropdownOpen(false);
   };
@@ -63,25 +64,32 @@ export default function CalendarSubscription({ calendarUrl, mosqueName }: Calend
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button 
+      <button
         onClick={toggleDropdown}
         className="bg-white/90 hover:bg-white text-gray-800 px-4 py-2 rounded-lg shadow-lg backdrop-blur-sm transition-all duration-200 flex items-center space-x-2"
       >
         <span className="text-sm font-medium">📅 Subscribe</span>
-        <svg 
-          className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} 
-          fill="none" 
-          stroke="currentColor" 
+        <svg
+          className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
           viewBox="0 0 24 24"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      
+
       {/* Dropdown Menu */}
-      <div className={`absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border transition-all duration-200 z-10 ${
-        isDropdownOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
-      }`}>
+      <div
+        className={`absolute top-full mt-2 w-48 bg-white rounded-lg shadow-xl border transition-all duration-200 z-10 ${
+          isDropdownOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
+        }`}
+        style={
+          dropdownAlign === 'center'
+            ? { left: '50%', transform: 'translateX(-50%)' }
+            : { right: 0 }
+        }
+      >
         <div className="py-2">
           <button
             onClick={() => handleCalendarSubscription('google')}
