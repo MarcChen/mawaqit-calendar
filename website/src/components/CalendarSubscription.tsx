@@ -39,9 +39,7 @@ export default function CalendarSubscription({
           );
           break;
         case 'ios':
-          const webcalUrl = calendarUrl
-            .replace('https://', 'webcal://')
-            .replace('http://', 'webcal://');
+          const webcalUrl = calendarUrl.replace(/^https?:\/\//, 'webcal://');
           const link = document.createElement('a');
           link.href = webcalUrl;
           link.style.display = 'none';
