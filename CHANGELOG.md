@@ -65,3 +65,7 @@ This pull request introduces Google Calendar integration for mosque prayer times
 * Removed obsolete mosque metadata file for the Grande Mosquée de Paris, likely due to migration or update in data handling.
 * Minor cleanups in `pyproject.toml` for linting configuration.
 
+## [0.4.0] - 2025-09-21
+- Merged PR #4 by @MarcChen: feat: add @vercel/analytics integration to track user interactions
+
+
