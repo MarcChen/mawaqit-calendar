@@ -35,3 +35,33 @@ This pull request sets up the initial structure for the Mawaqit Calendar website
 * Added `website/public/data/mosque_metadata.json` containing metadata for two mosques, including location, facilities, images, and external links.
 * Implemented main page logic in `website/src/app/page.tsx`
 
+## [0.3.0] - 2025-09-21
+- Merged PR #3 by @MarcChen: Feat/add gcalendar integration
+This pull request introduces Google Calendar integration for mosque prayer times, adds developer tooling for code quality and automation, and refactors parts of the calendar generation code for consistency and maintainability. The most significant changes are grouped below.
+
+**Google Calendar Integration:**
+
+* Added `src/calendar/google_calendar.py` implementing a `GoogleCalendarClient` class to create, manage, and publish Google Calendars, including batch event insertion from ICS files, authentication, and public calendar sharing.
+* Added `scripts/create_prayer_times_google_calendar.py` script to automate scraping mosque data, generating prayer calendars, and publishing them to Google Calendar, with robust error handling and logging.
+* Updated dependencies in `pyproject.toml` to include Google API client libraries required for calendar integration.
+
+**Developer Tooling & Automation:**
+
+* Added `.pre-commit-config.yaml` to enable pre-commit hooks for linting, formatting, and code hygiene checks using Ruff and standard pre-commit hooks.
+* Added `.vscode/tasks.json` for convenient build and run tasks in VS Code, streamlining local development workflows.
+
+**Calendar Generation Refactoring:**
+
+* Refactored `src/calendar/ics_generator.py` for improved type annotations, logging consistency (using debug level for non-critical info), and minor code cleanups. [[1]](diffhunk://#diff-5b7f5a48bc3dd0afee54cb8d6c7f18f74747a9303757423304b4d7ddc94266d8L1-L12) [[2]](diffhunk://#diff-5b7f5a48bc3dd0afee54cb8d6c7f18f74747a9303757423304b4d7ddc94266d8L24-R24) [[3]](diffhunk://#diff-5b7f5a48bc3dd0afee54cb8d6c7f18f74747a9303757423304b4d7ddc94266d8L181-R181) [[4]](diffhunk://#diff-5b7f5a48bc3dd0afee54cb8d6c7f18f74747a9303757423304b4d7ddc94266d8L213-R220) [[5]](diffhunk://#diff-5b7f5a48bc3dd0afee54cb8d6c7f18f74747a9303757423304b4d7ddc94266d8L239-R239) [[6]](diffhunk://#diff-5b7f5a48bc3dd0afee54cb8d6c7f18f74747a9303757423304b4d7ddc94266d8L251-R252) [[7]](diffhunk://#diff-5b7f5a48bc3dd0afee54cb8d6c7f18f74747a9303757423304b4d7ddc94266d8R274) [[8]](diffhunk://#diff-5b7f5a48bc3dd0afee54cb8d6c7f18f74747a9303757423304b4d7ddc94266d8L287-R288)
+* Added a placeholder script `scripts/add_new_prayer_times.py` for future automation of annual prayer time updates.
+
+**Configuration Updates:**
+
+* Added `GLOBAL_METADATA_PATH` constant to `src/config/settings.py` for centralized metadata file path management.
+* Updated optional and test dependencies in `pyproject.toml` to include `pre-commit` and clarified dev/test separation.
+
+**Other Changes:**
+
+* Removed obsolete mosque metadata file for the Grande Mosquée de Paris, likely due to migration or update in data handling.
+* Minor cleanups in `pyproject.toml` for linting configuration.
+
