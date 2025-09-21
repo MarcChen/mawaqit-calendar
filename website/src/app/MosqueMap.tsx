@@ -22,10 +22,10 @@ export default function MosqueMap({ mosqueData }) {
           attribution='&copy; OpenStreetMap contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {mosqueData.map(([key, mosque]) =>
+        {mosqueData.map((mosque, idx) =>
           mosque.latitude && mosque.longitude ? (
             <Marker
-              key={key}
+              key={mosque.id ?? idx}
               position={[mosque.latitude, mosque.longitude]}
               icon={markerIcon}
             >

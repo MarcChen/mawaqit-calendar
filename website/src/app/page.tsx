@@ -46,14 +46,13 @@ export default function Home() {
   const filteredMosques = useMemo(() => {
     return Object.entries(mosqueData).filter(([key, mosque]) => {
       // Text search
-      const matchesSearch = searchTerm === '' ||
-        mosque.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        mosque.association.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        key.toLowerCase().includes(searchTerm.toLowerCase());
-
+      const matchesSearch =
+        searchTerm === '' ||
+        ((mosque.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+         (mosque.association ?? '').toLowerCase().includes(searchTerm.toLowerCase()));
       return matchesSearch;
     });
-  }, [mosqueData, searchTerm]);
+  }, [searchTerm, mosqueData]);
 
   if (loading) {
     return (
@@ -105,7 +104,7 @@ export default function Home() {
             <input
               type="text"
               id="search"
-              placeholder="Search by name, association, or location..."
+              placeholder="Search by name"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-gray-800"
@@ -113,12 +112,8 @@ export default function Home() {
           </div>
 
         {/* Map below the filter bar */}
-        <MosqueMap mosqueData={filteredMosques} />
+        <MosqueMap mosqueData={filteredMosques.map(([_, mosque]) => mosque)} />
 
-          {/* Results count */}
-          <div className="text-sm text-gray-600">
-            {filteredMosques.length} mosque{filteredMosques.length !== 1 ? 's' : ''} found
-          </div>
         </div>
 
         {/* Mosque Cards */}
