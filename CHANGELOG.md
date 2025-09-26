@@ -69,3 +69,7 @@ This pull request introduces Google Calendar integration for mosque prayer times
 - Merged PR #4 by @MarcChen: feat: add @vercel/analytics integration to track user interactions
 
 
+## [0.4.1] - 2025-09-26
+- Merged PR #5 by @MarcChen: feat: added more data
+
+
