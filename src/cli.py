@@ -192,36 +192,32 @@ class ConfigManager:
         self.save()
 
 
-def clear_month_events(service, calendar_id: str, year: int, month: int):
-    """Clear all prayer time events for a specific month."""
-    start_of_month = datetime(year, month, 1).isoformat() + "Z"
-
-    # Calculate end of month
-    if month == 12:
-        end_of_month = datetime(year + 1, 1, 1).isoformat() + "Z"
-    else:
-        end_of_month = datetime(year, month + 1, 1).isoformat() + "Z"
-
-    # Find and delete existing events
+def find_existing_prayer_event(service, calendar_id: str, year: int, month: int, day: int, prayer_name: str) -> dict | None:
+    """Find an existing prayer event for a specific date and prayer.
+    
+    Returns the event dict if found, None otherwise.
+    """
+    # Search for events on this specific day with this prayer name
+    start_of_day = datetime(year, month, day, 0, 0).isoformat() + "Z"
+    end_of_day = datetime(year, month, day, 23, 59).isoformat() + "Z"
+    
     events_result = (
         service.events()
         .list(
             calendarId=calendar_id,
-            timeMin=start_of_month,
-            timeMax=end_of_month,
-            q="Prayer",  # Only delete our prayer events
+            timeMin=start_of_day,
+            timeMax=end_of_day,
+            q=f"🕌 {prayer_name.title()}",
         )
         .execute()
     )
-
+    
     events = events_result.get("items", [])
     for event in events:
-        try:
-            service.events().delete(calendarId=calendar_id, eventId=event["id"]).execute()
-        except HttpError:
-            pass
-
-    return len(events)
+        if f"🕌 {prayer_name.title()}" in event.get("summary", ""):
+            return event
+    
+    return None
 
 
 def sync_prayer_times(
@@ -230,11 +226,17 @@ def sync_prayer_times(
     mosque: Mosque,
     year: int,
     month: int,
-) -> int:
-    """Sync prayer times for a specific month to Google Calendar."""
+) -> tuple[int, int, int]:
+    """Sync prayer times for a specific month to Google Calendar.
+    
+    Returns:
+        Tuple of (events_created, events_updated, events_unchanged)
+    """
     timezone = mosque.metadata.timezone if mosque.metadata else "Europe/Paris"
 
     events_created = 0
+    events_updated = 0
+    events_unchanged = 0
 
     # Get days in month
     if month == 12:
@@ -262,8 +264,13 @@ def sync_prayer_times(
                     hour, minute = map(int, prayer_time_str.split(":"))
                     start_time = datetime(year, month, day, hour, minute)
 
-                    # Create event
-                    event = {
+                    # Check if this prayer already exists
+                    existing_event = find_existing_prayer_event(
+                        service, calendar_id, year, month, day, prayer_name
+                    )
+
+                    # Create new event data
+                    new_event = {
                         "summary": f"🕌 {prayer_name.title()}",
                         "description": f"{prayer_name.title()} prayer at {mosque.name}",
                         "start": {
@@ -282,8 +289,32 @@ def sync_prayer_times(
                         },
                     }
 
-                    service.events().insert(calendarId=calendar_id, body=event).execute()
-                    events_created += 1
+                    if existing_event:
+                        # Check if the time has changed
+                        existing_start = existing_event.get("start", {}).get("dateTime")
+                        new_start = new_event["start"]["dateTime"]
+                        
+                        if existing_start == new_start:
+                            # Time hasn't changed, skip
+                            events_unchanged += 1
+                        else:
+                            # Delete old event and recreate
+                            service.events().delete(
+                                calendarId=calendar_id, 
+                                eventId=existing_event["id"]
+                            ).execute()
+                            service.events().insert(
+                                calendarId=calendar_id, 
+                                body=new_event
+                            ).execute()
+                            events_updated += 1
+                    else:
+                        # No existing event, create new
+                        service.events().insert(
+                            calendarId=calendar_id, 
+                            body=new_event
+                        ).execute()
+                        events_created += 1
 
                 except Exception as e:
                     console.print(f"[yellow]Warning: Could not add {prayer_name} on {date_obj}: {e}[/yellow]")
@@ -291,7 +322,7 @@ def sync_prayer_times(
         except Exception as e:
             console.print(f"[yellow]Warning: Could not process day {day}: {e}[/yellow]")
 
-    return events_created
+    return events_created, events_updated, events_unchanged
 
 
 @app.command()
@@ -414,22 +445,18 @@ def sync(
     creds = authenticate_google()
     service = build("calendar", "v3", credentials=creds)
 
-    # Clear existing events for this month
-    console.print(f"\n[bold]Clearing existing events for {datetime(year, month, 1).strftime('%B %Y')}...[/bold]")
-    cleared = clear_month_events(service, calendar_id, year, month)
-    console.print(f"[green]✓ Cleared {cleared} existing events[/green]")
-
-    # Sync new events
-    console.print(f"\n[bold]Adding prayer times for {datetime(year, month, 1).strftime('%B %Y')}...[/bold]")
-    events_added = sync_prayer_times(service, calendar_id, mosque, year, month)
+    # Sync events (checks for existing, updates if changed)
+    console.print(f"\n[bold]Syncing prayer times for {datetime(year, month, 1).strftime('%B %Y')}...[/bold]")
+    created, updated, unchanged = sync_prayer_times(service, calendar_id, mosque, year, month)
 
     # Update config
     config.set_last_sync(datetime.now().isoformat())
 
     console.print(Panel(
         f"[bold green]Sync complete![/bold green]\n\n"
-        f"Added {events_added} prayer events\n"
-        f"Cleared {cleared} old events\n\n"
+        f"Created: {created} new events\n"
+        f"Updated: {updated} changed events\n"
+        f"Unchanged: {unchanged} events\n\n"
         f"Your calendar is now up to date for {datetime(year, month, 1).strftime('%B %Y')}.",
         title="Success"
     ))
