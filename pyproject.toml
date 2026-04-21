@@ -1,7 +1,7 @@
 [project]
 name = "mawaqit-calendar"
-description = "Scrape prayer times from Mawaqit and generate ICS calendar files for mosques."
-version = "0.1.0"
+description = "Personal prayer times sync from Mawaqit to your Google Calendar"
+version = "0.2.0"
 authors = [
     { name = "MarcChen", email = "128506536+MarcChen@users.noreply.github.com" }
 ]
@@ -14,7 +14,9 @@ dependencies = [
     "rich",
     "google-api-python-client",
     "google-auth-httplib2",
-    "google-auth-oauthlib"
+    "google-auth-oauthlib",
+    "typer>=0.9.0",
+    "annotated-types"
 ]
 
 [project.optional-dependencies]
@@ -25,6 +27,9 @@ dev = [
 test = [
     "pytest"
 ]
+
+[project.scripts]
+mawaqit-calendar = "src.cli:app"
 
 [tool.pytest.ini_options]
 addopts = "-ra -q --tb=short -v --strict-markers --strict-config"
