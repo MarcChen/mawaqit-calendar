@@ -1,9 +1,6 @@
 import pytest
-from unittest.mock import patch, mock_open, MagicMock
-import json
-import tempfile
-from pathlib import Path
 
+from pydantic import ValidationError
 from src.models.mosque import Mosque, MosqueMetadata
 from tests.utils.base_test_case import BaseTestCase
 
@@ -86,10 +83,17 @@ class TestMosqueMetadata(BaseTestCase):
         assert metadata.interior_picture == "interior_test.jpg"
         assert metadata.exterior_picture == "exterior_test.jpg"
 
-    def test_extra_fields_forbidden(self):
-        """Test that extra fields are forbidden"""
-        with pytest.raises(Exception):
-            MosqueMetadata(unknown_field="value")
+    def test_extra_fields_are_preserved(self):
+        """Registry metadata keeps extra fields so calendarUrl survives round-trips."""
+        metadata = MosqueMetadata(
+            calendarUrl="https://example.com/public/basic.ics",
+            unknown_field="value",
+        )
+
+        dumped = metadata.model_dump(by_alias=True)
+        assert metadata.calendar_url == "https://example.com/public/basic.ics"
+        assert dumped["calendarUrl"] == "https://example.com/public/basic.ics"
+        assert dumped["unknown_field"] == "value"
 
 
 class TestMosque(BaseTestCase):
@@ -147,7 +151,7 @@ class TestMosque(BaseTestCase):
         # Invalid latitudes should raise validation error
         invalid_latitudes = [-91, 91, -180, 180]
         for lat in invalid_latitudes:
-            with pytest.raises(Exception):
+            with pytest.raises(ValidationError):
                 self.create_sample_mosque(latitude=lat)
 
     def test_longitude_validation(self):
@@ -162,7 +166,7 @@ class TestMosque(BaseTestCase):
         # Invalid longitudes should raise validation error
         invalid_longitudes = [-181, 181, -360, 360]
         for lon in invalid_longitudes:
-            with pytest.raises(Exception):
+            with pytest.raises(ValidationError):
                 self.create_sample_mosque(longitude=lon)
 
     def test_name_validation(self):
@@ -174,7 +178,7 @@ class TestMosque(BaseTestCase):
             assert mosque.name == name
 
         # Empty name should raise validation error
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             self.create_sample_mosque(name="")
 
     def test_url_validation(self):
@@ -245,7 +249,7 @@ class TestMosque(BaseTestCase):
             "unknown_field": "value",
         }
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             Mosque(**mosque_data)
 
     def test_mosque_string_representation(self):
