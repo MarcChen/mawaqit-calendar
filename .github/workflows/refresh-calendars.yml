@@ -1,0 +1,83 @@
+name: Refresh prayer calendars
+
+on:
+  schedule:
+    - cron: "17 3 1 1 *"
+  workflow_dispatch:
+    inputs:
+      execute:
+        description: "Run the live Google Calendar replacement"
+        required: false
+        default: false
+        type: boolean
+      confirmation:
+        description: "Required for live execution: REFRESH-ALL"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: calendar-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: uv sync --extra test
+
+      - name: Run calendar refresh
+        env:
+          GOOGLE_TOKEN_JSON: ${{ secrets.GOOGLE_TOKEN_JSON }}
+          ENABLE_CALENDAR_WRITES: ${{ vars.ENABLE_CALENDAR_WRITES }}
+        run: |
+          set -euo pipefail
+          execute_refresh="false"
+          confirmation="REFRESH-ALL"
+
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "${{ inputs.execute }}" = "true" ]; then
+            execute_refresh="true"
+            confirmation="${{ inputs.confirmation }}"
+          fi
+
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ] && [ "$ENABLE_CALENDAR_WRITES" = "true" ]; then
+            execute_refresh="true"
+          fi
+
+          if [ "$execute_refresh" = "true" ]; then
+            if [ -z "$GOOGLE_TOKEN_JSON" ]; then
+              echo "GOOGLE_TOKEN_JSON is required for live refresh." >&2
+              exit 1
+            fi
+            printf '%s' "$GOOGLE_TOKEN_JSON" > token.json
+            chmod 600 token.json
+            uv run --no-sync python -m scripts.refresh_prayer_times \
+              --all --execute --confirm-token "$confirmation"
+          else
+            uv run --no-sync python -m scripts.refresh_prayer_times --all --no-remote
+          fi
+
+      - name: Remove local credentials
+        if: always()
+        run: rm -f token.json
+
+      - name: Upload refresh plans
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: refresh-plans
+          path: data/refresh_plan*.json
+          if-no-files-found: ignore

@@ -1,0 +1,30 @@
+name: Submit a mosque calendar
+description: Request a calendar for a mosque published on Mawaqit.
+title: "[Mosque] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A maintainer will validate the Mawaqit page before adding the mosque.
+        Do not include Google credentials or private calendar IDs.
+  - type: input
+    id: mosque-name
+    attributes:
+      label: Mosque name
+      placeholder: Mosque ANNOUR
+    validations:
+      required: true
+  - type: input
+    id: mawaqit-url
+    attributes:
+      label: Mawaqit URL
+      placeholder: https://mawaqit.net/fr/your-mosque
+    validations:
+      required: true
+  - type: textarea
+    id: calendar-context
+    attributes:
+      label: Calendar context
+      description: Tell us which timezone or calendar subscription the mosque should use.
+    validations:
+      required: false

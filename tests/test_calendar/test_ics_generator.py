@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -224,19 +223,17 @@ class TestICSGenerator(BaseTestCase):
         assert start_time.tzinfo is not None
         assert str(start_time.tzinfo) == "Europe/Paris"
 
-    @patch("uuid.uuid4")
-    def test_event_uid_generation(self, mock_uuid):
-        """Test that event UIDs are properly generated"""
-        mock_uuid.return_value = Mock()
-        mock_uuid.return_value.__str__ = Mock(return_value="test-uuid-123")
-
+    def test_event_uid_generation(self):
+        """Test that event UIDs are stable for the same event identity."""
         generator = self.create_sample_ics_generator()
 
         prayer_datetime = datetime(2025, 1, 15, 6, 49)
-        event = generator._create_prayer_event("fajr", prayer_datetime)
+        first_event = generator._create_prayer_event("fajr", prayer_datetime)
+        second_event = generator._create_prayer_event("fajr", prayer_datetime)
 
-        assert event["uid"] == "test-uuid-123"
-        mock_uuid.assert_called_once()
+        expected_uid = f"{self.mosque.id}-20250115-fajr@mawaqit-calendar"
+        assert first_event["uid"] == expected_uid
+        assert second_event["uid"] == expected_uid
 
     def test_prayer_filtering(self):
         """Test prayer filtering based on configuration"""

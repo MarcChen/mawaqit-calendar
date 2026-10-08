@@ -301,7 +301,6 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "pre-commit" },
-    { name = "pytest" },
     { name = "ruff" },
 ]
 test = [
@@ -317,7 +316,6 @@ requires-dist = [
     { name = "icalendar", specifier = ">=6.3.1" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pydantic" },
-    { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'test'" },
     { name = "requests" },
     { name = "rich" },

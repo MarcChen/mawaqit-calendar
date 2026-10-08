@@ -23,7 +23,9 @@ class MawaqitScraper(BaseScraper):
                 if script.string and "confData" in script.string:
                     # Extract the confData object
                     match = re.search(
-                        r"var confData = ({.*?});", script.string, re.DOTALL
+                        r"(?:var|let)\s+confData\s*=\s*({.*?});",
+                        script.string,
+                        re.DOTALL,
                     )
                     if match:
                         json_str = match.group(1)

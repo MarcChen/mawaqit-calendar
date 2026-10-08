@@ -13,7 +13,7 @@ Thank you for your interest in contributing to Mawaqit Calendar! This project ai
 ### ✨ Feature Requests
 - New mosque sources
 - Calendar customization options
-- Website improvements
+- Calendar registry and subscription improvements
 - API enhancements
 
 ### 💻 Code Contributions
@@ -29,7 +29,7 @@ Thank you for your interest in contributing to Mawaqit Calendar! This project ai
 - API documentation
 
 ### 🕌 Mosque Data
-- Add new mosques to the configuration
+- Add new mosques to `registry/mosque_calendars.json`
 - Verify existing mosque information
 - Report outdated prayer times
 

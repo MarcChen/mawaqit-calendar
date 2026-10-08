@@ -1,5 +1,4 @@
 import logging
-import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -79,10 +78,15 @@ class ICSGenerator(BaseModel):
         self, prayer_name: str, prayer_datetime: datetime
     ) -> Event:
         """Create a single prayer event"""
+        if not isinstance(prayer_datetime, datetime):
+            raise TypeError("prayer_datetime must be a datetime")
         event = Event()
 
         # Basic event properties
-        event.add("uid", str(uuid.uuid4()))
+        event.add(
+            "uid",
+            f"{self.mosque.id}-{prayer_datetime:%Y%m%d}-{prayer_name.lower()}@mawaqit-calendar",
+        )
         event.add("dtstamp", datetime.now(self._get_timezone()))
 
         # Event time

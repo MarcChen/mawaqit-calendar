@@ -1,10 +1,11 @@
+import logging
+import random
+import time
+from abc import ABC, abstractmethod
+from typing import Any
+
 import requests
 from bs4 import BeautifulSoup
-import time
-import random
-from abc import ABC, abstractmethod
-from typing import Optional, Any
-import logging
 
 
 class BaseScraper(ABC):
@@ -26,10 +27,16 @@ class BaseScraper(ABC):
         session = requests.Session()
 
         headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "User-Agent": (
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            ),
+            "Accept": (
+                "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                "image/avif,image/webp,image/apng,*/*;q=0.8"
+            ),
             "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
-            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Encoding": "gzip, deflate",
             "DNT": "1",
             "Connection": "keep-alive",
             "Upgrade-Insecure-Requests": "1",
@@ -47,7 +54,7 @@ class BaseScraper(ABC):
         delay = random.uniform(*self.delay_range)
         time.sleep(delay)
 
-    def get_page(self, url: str, **kwargs) -> Optional[requests.Response]:
+    def get_page(self, url: str, **kwargs) -> requests.Response | None:
         """
         Fetch a page with stealth measures
 
@@ -81,7 +88,7 @@ class BaseScraper(ABC):
 
     def parse_html(
         self, response: requests.Response, parser: str = "html.parser"
-    ) -> Optional[BeautifulSoup]:
+    ) -> BeautifulSoup | None:
         """
         Parse HTML response into BeautifulSoup object
 
@@ -101,7 +108,7 @@ class BaseScraper(ABC):
 
     def get_and_parse(
         self, url: str, parser: str = "html.parser", **kwargs
-    ) -> Optional[BeautifulSoup]:
+    ) -> BeautifulSoup | None:
         response = self.get_page(url, **kwargs)
         if response:
             return self.parse_html(response, parser)
