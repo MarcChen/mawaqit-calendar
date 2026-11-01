@@ -16,3 +16,12 @@ def test_extract_conf_data_accepts_let_declaration(monkeypatch):
         "name": "Ivry",
         "calendar": [],
     }
+
+
+def test_create_mosque_metadata_extracts_shuruq():
+    scraper = MawaqitScraper(delay_range=(0, 0))
+    conf_data = {"parking": True, "shuruq": "07:37", "countryCode": "FR"}
+    metadata = scraper.create_mosque_metadata(conf_data)
+    assert metadata.shuruq == "07:37"
+    assert metadata.parking is True
+    assert metadata.country_code == "FR"

@@ -50,6 +50,14 @@ class TestMosqueMetadata(BaseTestCase):
         assert metadata.image is None
         assert metadata.interior_picture is None
         assert metadata.exterior_picture is None
+        assert metadata.shuruq is None
+
+    def test_mosque_metadata_with_shuruq(self):
+        """Test MosqueMetadata with shuruq time"""
+        metadata = MosqueMetadata(shuruq="07:37")
+        assert metadata.shuruq == "07:37"
+        dumped = metadata.model_dump()
+        assert dumped["shuruq"] == "07:37"
 
     def test_field_aliases(self):
         """Test that field aliases work correctly"""

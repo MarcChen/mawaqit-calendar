@@ -44,7 +44,7 @@ class TestDailyPrayerTimes(BaseTestCase):
         assert daily_prayer.isha == "18:47"
 
     def test_from_time_list_valid(self):
-        """Test creating DailyPrayerTimes from time list"""
+        """Test creating DailyPrayerTimes from time list with 6 times"""
         times = ["05:30", "07:15", "12:30", "15:45", "18:20", "19:45"]
         daily_prayer = DailyPrayerTimes.from_time_list(times, 2025, 1, 10)
 
@@ -56,12 +56,35 @@ class TestDailyPrayerTimes(BaseTestCase):
         assert daily_prayer.maghrib == "18:20"
         assert daily_prayer.isha == "19:45"
 
+    def test_from_time_list_5_times_without_shuruq(self):
+        """Test creating DailyPrayerTimes from time list with 5 times (no sunrise)"""
+        times = ["05:30", "12:30", "15:45", "18:20", "19:45"]
+        daily_prayer = DailyPrayerTimes.from_time_list(times, 2025, 1, 10)
+
+        assert daily_prayer.day == 10
+        assert daily_prayer.fajr == "05:30"
+        assert daily_prayer.shuruq is None
+        assert daily_prayer.dhuhr == "12:30"
+        assert daily_prayer.asr == "15:45"
+        assert daily_prayer.maghrib == "18:20"
+        assert daily_prayer.isha == "19:45"
+
     def test_from_time_list_invalid_count(self):
         """Test that from_time_list raises error with wrong number of times"""
         with pytest.raises(ValueError) as exc_info:
             DailyPrayerTimes.from_time_list(["05:30", "07:15"], 2025, 1, 10)
 
-        assert "Must provide exactly 6 times" in str(exc_info.value)
+        assert "Expected 5 or 6 times" in str(exc_info.value)
+
+        with pytest.raises(ValueError) as exc_info_7:
+            DailyPrayerTimes.from_time_list(
+                ["05:30", "07:15", "12:30", "15:45", "18:20", "19:45", "21:00"],
+                2025,
+                1,
+                10,
+            )
+
+        assert "Expected 5 or 6 times" in str(exc_info_7.value)
 
     def test_day_validation(self):
         """Test day field validation"""
@@ -127,6 +150,16 @@ class TestDailyPrayerTimes(BaseTestCase):
         assert all_datetimes["isha"].hour == 18
         assert all_datetimes["isha"].minute == 47
 
+    def test_get_datetime_when_shuruq_is_none(self):
+        """Test getting datetime when shuruq is None returns None"""
+        times = ["05:30", "12:30", "15:45", "18:20", "19:45"]
+        daily_prayer = DailyPrayerTimes.from_time_list(times, 2025, 1, 10)
+
+        assert daily_prayer.get_datetime(PrayerName.SHURUQ, 2025, 1) is None
+        all_datetimes = daily_prayer.get_all_datetimes(2025, 1)
+        assert len(all_datetimes) == 5
+        assert "shuruq" not in all_datetimes
+
     def test_to_dict(self):
         """Test converting prayer times to dictionary"""
         daily_prayer = self.create_sample_daily_prayer_times()
@@ -143,6 +176,15 @@ class TestDailyPrayerTimes(BaseTestCase):
         }
 
         assert prayer_dict == expected_dict
+
+    def test_to_dict_without_shuruq(self):
+        """Test converting prayer times to dictionary when shuruq is None"""
+        times = ["05:30", "12:30", "15:45", "18:20", "19:45"]
+        daily_prayer = DailyPrayerTimes.from_time_list(times, 2025, 1, 10)
+
+        prayer_dict = daily_prayer.to_dict()
+        assert "shuruq" not in prayer_dict
+        assert len(prayer_dict) == 5
 
     def test_time_format_validation(self):
         """Test that time strings are in correct format"""

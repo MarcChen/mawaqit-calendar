@@ -63,6 +63,7 @@ class MawaqitScraper(BaseScraper):
             image=conf_data.get("image"),
             interiorPicture=conf_data.get("interiorPicture"),
             exteriorPicture=conf_data.get("exteriorPicture"),
+            shuruq=conf_data.get("shuruq"),
         )
 
     def create_prayer_time(self, conf_data: dict) -> PrayerTime | None:

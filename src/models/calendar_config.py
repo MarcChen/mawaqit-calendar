@@ -14,6 +14,7 @@ class EventDuration(BaseModel):
     prayer_specific: Dict[PrayerName, int] = Field(
         default_factory=lambda: {
             PrayerName.FAJR: 15,
+            PrayerName.SHURUQ: 15,
             PrayerName.DHUHR: 30,
             PrayerName.ASR: 30,
             PrayerName.MAGHRIB: 20,
@@ -44,6 +45,7 @@ class CalendarConfig(BaseModel):
     include_prayers: List[PrayerName] = Field(
         default=[
             PrayerName.FAJR,
+            PrayerName.SHURUQ,
             PrayerName.DHUHR,
             PrayerName.ASR,
             PrayerName.MAGHRIB,

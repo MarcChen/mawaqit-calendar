@@ -35,6 +35,7 @@ class MosqueMetadata(BaseModel):
     interior_picture: str | None = Field(None, alias="interiorPicture")
     exterior_picture: str | None = Field(None, alias="exteriorPicture")
     calendar_url: str | None = Field(None, alias="calendarUrl")
+    shuruq: str | None = None
 
 
 class Mosque(BaseModel):

@@ -175,6 +175,7 @@ class TestICSGenerator(BaseTestCase):
         # Test different prayers with specific durations
         test_cases = [
             (PrayerName.FAJR, 15),
+            (PrayerName.SHURUQ, 15),
             (PrayerName.DHUHR, 30),
             (PrayerName.ASR, 30),
             (PrayerName.MAGHRIB, 20),
@@ -192,15 +193,15 @@ class TestICSGenerator(BaseTestCase):
             assert actual_duration == expected_duration
 
     def test_event_duration_default(self):
-        """Test default event duration for valid prayers"""
-        # Create config with custom default duration
-        event_duration = EventDuration(default_minutes=45)
+        """Test default event duration when prayer is not in prayer_specific"""
+        # Create config with custom default duration and empty prayer_specific
+        event_duration = EventDuration(default_minutes=45, prayer_specific={})
         calendar_config = self.create_sample_calendar_config()
         calendar_config.event_duration = event_duration
 
         generator = self.create_sample_ics_generator(calendar_config=calendar_config)
 
-        # Test with shuruq which is not in the prayer_specific defaults
+        # Test with prayer not in prayer_specific
         prayer_datetime = datetime(2025, 1, 15, 12, 0)
         event = generator._create_prayer_event("shuruq", prayer_datetime)
 
@@ -257,9 +258,21 @@ class TestICSGenerator(BaseTestCase):
         generator = self.create_sample_ics_generator(calendar_config=calendar_config)
 
         assert generator.calendar_config.exclude_sunrise is True
+        assert generator._should_include_prayer("shuruq") is False
+        assert generator._should_include_prayer("sunrise") is False
+
+        # When exclude_sunrise is False and SHURUQ is included
+        calendar_config_included = self.create_sample_calendar_config(
+            exclude_sunrise=False,
+            include_prayers=[PrayerName.FAJR, PrayerName.SHURUQ],
+        )
+        generator_included = self.create_sample_ics_generator(
+            calendar_config=calendar_config_included
+        )
+        assert generator_included._should_include_prayer("shuruq") is True
 
     def test_alarm_configuration(self):
-        """Test alarm configuration settings"""
+        """Test alarm configuration settings - prayers get alarms, shuruq does not"""
         alarm_config = AlarmConfig(enabled=True, minutes_before=[10, 5])
         calendar_config = self.create_sample_calendar_config()
         calendar_config.alarm_config = alarm_config
@@ -268,6 +281,20 @@ class TestICSGenerator(BaseTestCase):
 
         assert generator.calendar_config.alarm_config.enabled is True
         assert generator.calendar_config.alarm_config.minutes_before == [10, 5]
+
+        # Regular prayer event should have alarms
+        fajr_event = generator._create_prayer_event(
+            "fajr", datetime(2025, 1, 15, 6, 0)
+        )
+        alarms = [c for c in fajr_event.subcomponents if c.name == "VALARM"]
+        assert len(alarms) == 2
+
+        # Shuruq event must have NO alarm per user requirement
+        shuruq_event = generator._create_prayer_event(
+            "shuruq", datetime(2025, 1, 15, 8, 0)
+        )
+        shuruq_alarms = [c for c in shuruq_event.subcomponents if c.name == "VALARM"]
+        assert len(shuruq_alarms) == 0
 
     def test_calendar_metadata_validation(self):
         """Test calendar metadata validation"""
@@ -330,6 +357,85 @@ class TestICSGenerator(BaseTestCase):
         # Each event should have unique UID
         uids = [event["uid"] for event in events]
         assert len(set(uids)) == 3  # All UIDs should be unique
+
+    def test_generate_calendar_includes_shuruq_events(self):
+        """Test that generate_calendar includes Shuruq events by default"""
+        calendar_config = self.create_sample_calendar_config(
+            include_prayers=[
+                PrayerName.FAJR,
+                PrayerName.SHURUQ,
+                PrayerName.DHUHR,
+                PrayerName.ASR,
+                PrayerName.MAGHRIB,
+                PrayerName.ISHA,
+            ],
+            exclude_sunrise=False,
+        )
+        generator = self.create_sample_ics_generator(calendar_config=calendar_config)
+        calendar = generator.generate_calendar()
+
+        events = [c for c in calendar.walk() if c.name == "VEVENT"]
+        # Sample mosque has 3 months of 3 days (9 days), 6 events per day = 54 events
+        assert len(events) == 54
+        summaries = [str(e["summary"]) for e in events]
+        shuruq_summaries = [s for s in summaries if "Shuruq" in s]
+        assert len(shuruq_summaries) == 9
+
+    def test_generate_calendar_excludes_shuruq_when_exclude_sunrise_true(self):
+        """Test that generate_calendar excludes Shuruq when exclude_sunrise is True"""
+        calendar_config = self.create_sample_calendar_config(
+            include_prayers=[
+                PrayerName.FAJR,
+                PrayerName.SHURUQ,
+                PrayerName.DHUHR,
+                PrayerName.ASR,
+                PrayerName.MAGHRIB,
+                PrayerName.ISHA,
+            ],
+            exclude_sunrise=True,
+        )
+        generator = self.create_sample_ics_generator(calendar_config=calendar_config)
+        calendar = generator.generate_calendar()
+
+        events = [c for c in calendar.walk() if c.name == "VEVENT"]
+        # 9 days * 5 prayers = 45 events
+        assert len(events) == 45
+        summaries = [str(e["summary"]) for e in events]
+        assert not any("Shuruq" in s for s in summaries)
+
+    def test_generate_calendar_with_missing_shuruq(self):
+        """Test calendar generation for a mosque with 5 times (no shuruq)"""
+        # Create prayer times with only 5 times
+        month_5_times = {
+            "1": ["06:49", "12:55", "14:47", "17:08", "18:47"],
+        }
+        monthly = self.create_sample_monthly_prayer_times(month_data=month_5_times)
+        from src.models.prayer_time import PrayerTime
+
+        prayer_time = PrayerTime.from_monthly_data([monthly])
+        mosque = self.create_sample_mosque()
+        mosque.prayer_time = prayer_time
+
+        calendar_config = self.create_sample_calendar_config(
+            include_prayers=[
+                PrayerName.FAJR,
+                PrayerName.SHURUQ,
+                PrayerName.DHUHR,
+                PrayerName.ASR,
+                PrayerName.MAGHRIB,
+                PrayerName.ISHA,
+            ],
+            exclude_sunrise=False,
+        )
+        generator = self.create_sample_ics_generator(
+            calendar_config=calendar_config, mosque=mosque
+        )
+        calendar = generator.generate_calendar()
+
+        events = [c for c in calendar.walk() if c.name == "VEVENT"]
+        assert len(events) == 5
+        summaries = [str(e["summary"]) for e in events]
+        assert not any("Shuruq" in s for s in summaries)
 
 
 if __name__ == "__main__":

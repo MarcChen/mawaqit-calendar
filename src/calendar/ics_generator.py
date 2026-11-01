@@ -116,8 +116,11 @@ class ICSGenerator(BaseModel):
         if self.generator_config.add_url_to_events and self.mosque and self.mosque.url:
             event.add("url", self.mosque.url)
 
-        # Alarms
-        if self.calendar_config.alarm_config.enabled:
+        # Alarms (skip for shuruq / sunrise)
+        if (
+            self.calendar_config.alarm_config.enabled
+            and prayer_name.lower() not in ("shuruq", "sunrise")
+        ):
             for minutes_before in self.calendar_config.alarm_config.minutes_before:
                 alarm = Alarm()
                 alarm.add("action", "DISPLAY")
@@ -131,7 +134,10 @@ class ICSGenerator(BaseModel):
 
     def _should_include_prayer(self, prayer_name: str) -> bool:
         """Check if prayer should be included based on configuration"""
-        if prayer_name.lower() == "sunrise" and self.calendar_config.exclude_sunrise:
+        if (
+            prayer_name.lower() in ("sunrise", "shuruq")
+            and self.calendar_config.exclude_sunrise
+        ):
             return False
 
         try:
@@ -200,7 +206,7 @@ class ICSGenerator(BaseModel):
                 prayers_dict = daily_prayers.to_dict()
 
                 for prayer_name, prayer_time_str in prayers_dict.items():
-                    if not self._should_include_prayer(prayer_name):
+                    if not prayer_time_str or not self._should_include_prayer(prayer_name):
                         continue
 
                     try:

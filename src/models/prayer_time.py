@@ -25,7 +25,9 @@ class DailyPrayerTimes(BaseModel):
 
     day: int = Field(..., ge=1, le=31, description="Day of the month (1-31)")
     fajr: str = Field(..., description="Fajr prayer time in HH:MM format")
-    shuruq: str = Field(..., description="Sunrise time in HH:MM format")
+    shuruq: str | None = Field(
+        default=None, description="Sunrise time in HH:MM format"
+    )
     dhuhr: str = Field(..., description="Dhuhr prayer time in HH:MM format")
     asr: str = Field(..., description="Asr prayer time in HH:MM format")
     maghrib: str = Field(..., description="Maghrib prayer time in HH:MM format")
@@ -36,43 +38,64 @@ class DailyPrayerTimes(BaseModel):
         cls, times: list[str], year: int, month: int, day: int
     ) -> "DailyPrayerTimes":
         """Create DailyPrayerTimes from a list of time strings and date info"""
-        if len(times) != 6:
-            raise ValueError("Must provide exactly 6 times (5 prayers + 1 sunrise)")
-
-        return cls(
-            day=day,
-            fajr=times[0],
-            shuruq=times[1],
-            dhuhr=times[2],
-            asr=times[3],
-            maghrib=times[4],
-            isha=times[5],
+        if len(times) == 6:
+            return cls(
+                day=day,
+                fajr=times[0],
+                shuruq=times[1],
+                dhuhr=times[2],
+                asr=times[3],
+                maghrib=times[4],
+                isha=times[5],
+            )
+        elif len(times) == 5:
+            return cls(
+                day=day,
+                fajr=times[0],
+                shuruq=None,
+                dhuhr=times[1],
+                asr=times[2],
+                maghrib=times[3],
+                isha=times[4],
+            )
+        raise ValueError(
+            f"Expected 5 or 6 times (got {len(times)}): 5 prayers or 5 prayers + 1 sunrise"
         )
 
-    def get_datetime(self, prayer_name: PrayerName, year: int, month: int) -> datetime:
-        """Get datetime object for a specific prayer"""
+    def get_datetime(
+        self, prayer_name: PrayerName, year: int, month: int
+    ) -> datetime | None:
+        """Get datetime object for a specific prayer (or None if not set)"""
         time_str = getattr(self, prayer_name.value)
+        if time_str is None:
+            return None
         date_obj = date(year, month, self.day)
         time_obj = datetime.strptime(time_str, "%H:%M").time()
         return datetime.combine(date_obj, time_obj)
 
     def get_all_datetimes(self, year: int, month: int) -> dict[str, datetime]:
         """Get all prayer times as datetime objects"""
-        return {
-            prayer.value: self.get_datetime(prayer, year, month)
-            for prayer in PrayerName
-        }
+        datetimes = {}
+        for prayer in PrayerName:
+            dt = self.get_datetime(prayer, year, month)
+            if dt is not None:
+                datetimes[prayer.value] = dt
+        return datetimes
 
     def to_dict(self) -> dict[str, str]:
         """Convert prayer times to dictionary format"""
-        return {
-            "fajr": self.fajr,
-            "shuruq": self.shuruq,
-            "dhuhr": self.dhuhr,
-            "asr": self.asr,
-            "maghrib": self.maghrib,
-            "isha": self.isha,
-        }
+        result = {"fajr": self.fajr}
+        if self.shuruq is not None:
+            result["shuruq"] = self.shuruq
+        result.update(
+            {
+                "dhuhr": self.dhuhr,
+                "asr": self.asr,
+                "maghrib": self.maghrib,
+                "isha": self.isha,
+            }
+        )
+        return result
 
 
 class MonthlyPrayerTimes(BaseModel):
@@ -197,15 +220,18 @@ class PrayerTime(BaseModel):
             for daily_prayer in month.days:
                 date_key = f"{self.year:04d}-{month.month:02d}-{daily_prayer.day:02d}"
 
-                # Create prayer times dict (excluding shuruq as it's not a prayer)
-                result[date_key] = {
-                    "fajr": daily_prayer.fajr,
-                    "shuruq": daily_prayer.shuruq,
-                    "dhuhr": daily_prayer.dhuhr,
-                    "asr": daily_prayer.asr,
-                    "maghrib": daily_prayer.maghrib,
-                    "isha": daily_prayer.isha,
-                }
+                entry = {"fajr": daily_prayer.fajr}
+                if daily_prayer.shuruq is not None:
+                    entry["shuruq"] = daily_prayer.shuruq
+                entry.update(
+                    {
+                        "dhuhr": daily_prayer.dhuhr,
+                        "asr": daily_prayer.asr,
+                        "maghrib": daily_prayer.maghrib,
+                        "isha": daily_prayer.isha,
+                    }
+                )
+                result[date_key] = entry
 
         return result
 
